@@ -23,13 +23,12 @@ from scipy.interpolate import griddata
 
 import traceback
 
-__file__ = 'cheshift.py'#os.path.join('~', 'Documents', 'cheshift', 'cheshift.py')
-path = os.path.dirname(os.path.abspath(__file__))
-print path
 
 def run():
     """Checks if files were provided and calls the prediction routine"""
- 
+    path = os.path.dirname(os.path.abspath(__file__)) 
+    print path
+
     try:
         pdb_filename = cmd.get_names('all')[0]
         print pdb_filename
@@ -37,9 +36,9 @@ def run():
     except:
         Pmw.MessageDialog(title = 'Error',message_text = 'Please choose a\n PDB file')
 
-    prediction(pdb_filename)
+    prediction(pdb_filename, path)
 
-def prediction(pdb_filename):
+def prediction(pdb_filename, path):
     """Run the CheShift CS prediction routine"""
     cmd.set('suspend_updates', 'on')
     pose, residues, total_residues, states = pose_from_pdb(pdb_filename)
