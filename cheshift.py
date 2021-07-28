@@ -18,12 +18,26 @@ from pymol import cmd, stored
 import sys
 import re
 import os
+import numpy as np
+from scipy.interpolate import griddata
+
+import traceback
 
 __file__ = 'cheshift.py'#os.path.join('~', 'Documents', 'cheshift', 'cheshift.py')
 path = os.path.dirname(os.path.abspath(__file__))
 print path
 
+def run():
+    """Checks if files were provided and calls the prediction routine"""
+ 
+    try:
+        pdb_filename = cmd.get_names('all')[0]
+        print pdb_filename
 
+    except:
+        Pmw.MessageDialog(title = 'Error',message_text = 'Please choose a\n PDB file')
+
+    prediction(pdb_filename)
 
 def prediction(pdb_filename):
     """Run the CheShift CS prediction routine"""
@@ -276,7 +290,8 @@ def get_chemical_shifts_raw(residues, total_residues, state, Db):
                 chi1 = get_chi1(res_num, res_name, state)
                 chi2  = get_chi2(res_num, res_name, state)
                 values_Ca_New, values_Cb_New = near(phi, psi, chi1, chi2, res_name, Db)
-            except:
+            except Exception as err:
+                #traceback.print_exc()
                 values_Ca_New = 999.00
                 values_Cb_New = 999.00
         elif res_name == 'CYS':
@@ -327,4 +342,4 @@ def raw(pose, residues, total_residues, states, Db):
         fd.write('%s\t %s\n' % (residues[residue], res_line))
     fd.close()
 
-cmd.extend("cheshift_prediction", prediction)
+cmd.extend("cheshift_prediction", run)
