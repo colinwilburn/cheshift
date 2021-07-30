@@ -8,7 +8,7 @@ This fork has updated it to be called by a python script on a machine with PyMOL
 
 To generate predictions of 13Cα and 13Cβ shifts for a protein structure, in Python 2 do:
 \
-'''
 from cheshift_predictions import predict
+\
 predict(pdb_filename, output_filename)
-'''
+
