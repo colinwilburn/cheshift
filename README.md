@@ -4,6 +4,9 @@ CheShift is a software for prediction of  13Cα and 13Cβ chemical shifts and va
 \
 This fork has updated it to be called by a python script on a machine with PyMOL installed. It has been tested on PyMOL 1.8.4.0 and Python 2.7.17.
 
+# Installation
+Just clone the repository
+
 # Running
 
 To generate predictions of 13Cα and 13Cβ shifts for a protein structure, in Python 2 do:
@@ -11,4 +14,6 @@ To generate predictions of 13Cα and 13Cβ shifts for a protein structure, in Py
 from cheshift_predictions import predict
 \
 predict(pdb_filename, output_filename)
+\
+See example.py for an example of predicting the 13Cα and 13Cβ chemical shifts of 2PQE.
 
