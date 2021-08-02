@@ -18,10 +18,8 @@ def read_from_cheshift(filename_old):
             if len(row) == 1: # we've hit one of the header files, so transition to CA or CB
                 half_counter += 1
                 atom_name = atom_names[half_counter]
-                res_num = 0
             elif len(row) > 1: # not one of the specific rows
-                res_num += 1
-                res_label, cs = convert_row(row)
+                res_num, res_label, cs = convert_row(row)
                 if res_num not in residues_dict:
                     residues_dict[res_num] = {}
                     residues_dict[res_num]['res_label'] = res_label
@@ -30,17 +28,18 @@ def read_from_cheshift(filename_old):
     return residues_dict
     
 def convert_row(row):
-    res_label = row[0]
+    res_num = int(row[0])
+    res_label = row[1]
 
-    if float(row[1]) == 999.0: # this means that chemshift couldn't calculate the chemical shift
+    if float(row[2]) == 999.0: # this means that chemshift couldn't calculate the chemical shift
         cs = "None"
     else:
         cs = 0 # and we will take the average
-        for cs_model in row[1:]:
+        for cs_model in row[2:]:
             cs += float(cs_model)
-        cs = cs / len(row[1:])
+        cs = cs / len(row[2:])
 
-    return res_label, cs
+    return res_num, res_label, cs
 
 def write_to_out(filename_new, residues_dict):
     
@@ -49,7 +48,7 @@ def write_to_out(filename_new, residues_dict):
     res_num_list.sort()
     for res_num in res_num_list:
         info_dict = residues_dict[res_num]
-        res_label = info_dict['res_label']
+        res_label = info_dict['res_label'][1:] # get rid of the extra space
         cs_ca = info_dict['CA']
         cs_cb = info_dict['CB']
         row = [res_num, res_label, cs_ca, cs_cb]

@@ -41,13 +41,19 @@ def run():
 def prediction(pdb_filename, path):
     """Run the CheShift CS prediction routine"""
     cmd.set('suspend_updates', 'on')
-    pose, residues, total_residues, states = pose_from_pdb(pdb_filename)
+    pose, res_label_list, res_num_list, states = pose_from_pdb(pdb_filename)
     Db = load(path)
+    raw(pose, res_label_list, res_num_list, states, Db)
+    print '<'*80 + '\nYou didn`t provide a file with chemical Shifts, hence CheShift-2 assumed you\n only wanted the predicted CS. The predicted chemical shifts can be found in the file %s.txt\n' % pose + '>'*80
+    for sel in ['alpha', 'beta', 'gamma', 'delta']:
+        cmd.delete(sel)
+    cmd.set('suspend_updates', 'off')
+    '''
     raw(pose, residues, total_residues, states, Db) 
     print '<'*80 + '\nYou didn`t provide a file with chemical Shifts, hence CheShift-2 assumed you\n only wanted the predicted CS. The predicted chemical shifts can be found in the file %s.txt\n' % pose + '>'*80
     for sel in ['A', 'B', 'C', 'D']:
         cmd.delete(sel)
-    cmd.set('suspend_updates', 'off')
+    cmd.set('suspend_updates', 'off')'''
 
 
 
@@ -63,46 +69,56 @@ def pose_from_pdb(pdb_file_name):
     cmd.iterate('(name ca)','stored.residues.append((resn))')
     cmd.iterate('all','stored.ResiduesNumber.append((resi))')
     first = int(stored.ResiduesNumber[0])
-    cmd.alter(pose, 'resi=str(int(resi)-%s)' % (first))
+    #cmd.alter(pose, 'resi=str(int(resi)-%s)' % (first))
     cmd.sort(pose)
     states = cmd.count_states('all') + 1
-    return pose, stored.residues, len(stored.residues), states
+    
+    res_num_set = set(stored.ResiduesNumber)
+
+    res_num_list = list(res_num_set)
+    res_num_list = [int(_) for _ in res_num_list]
+    res_num_list.sort()
+    res_label_list = stored.residues[:len(res_num_list)]
+
+    return pose, res_label_list, res_num_list, states
+
 
 
 
 def get_phi(res_num, state):
     """Computes the phi torsional angle"""
     if res_num != 0:
-        cmd.select('A', 'resi %s and name C' % (res_num-1))
-        cmd.select('B', 'resi %s and name N' % res_num)
-        cmd.select('C', 'resi %s and name CA' % res_num)
-        cmd.select('D', 'resi %s and name C' % res_num)
-        return cmd.get_dihedral('A', 'B', 'C', 'D', state)
+        cmd.select('alpha', 'resi %s and name C' % (res_num-1))
+        cmd.select('beta', 'resi %s and name N' % res_num)
+        cmd.select('gamma', 'resi %s and name CA' % res_num)
+        cmd.select('delta', 'resi %s and name C' % res_num)
+        phi = cmd.get_dihedral('alpha', 'beta', 'gamma', 'delta', state)
+        return phi
     else:
         return float('nan')
 
 
-def get_psi(res_num, state, total_residues):
+def get_psi(res_num, state, res_num_list):
     """Computes the psi torsional angle"""
-    if res_num != total_residues - 1:
-        cmd.select('A', 'resi %s and name N' % res_num)
-        cmd.select('B', 'resi %s and name CA' % res_num)
-        cmd.select('C', 'resi %s and name C' % res_num)
-        cmd.select('D', 'resi %s and name N' % (res_num+1))
-        psi = cmd.get_dihedral('A', 'B', 'C', 'D', state)
+    if res_num != res_num_list[-1]:
+        cmd.select('alpha', 'resi %s and name N and chain A' % res_num)
+        cmd.select('beta', 'resi %s and name CA and chain A' % res_num)
+        cmd.select('gamma', 'resi %s and name C and chain A' % res_num)
+        cmd.select('delta', 'resi %s and name N and chain A' % (res_num+1))
+        psi = cmd.get_dihedral('alpha', 'beta', 'gamma', 'delta', state)
         return psi
     else:
         return float('nan')
 
 
-def get_omega(res_num, state, total_residues):
+def get_omega(res_num, state, res_num_list):
     """Computes the omega torsional angle"""
-    if res_num != total_residues-1:
-        cmd.select('A', 'resi %s and name CA' % res_num)
-        cmd.select('B', 'resi %s and name C' % res_num)
-        cmd.select('C', 'resi %s and name N' % (res_num+1))
-        cmd.select('D', 'resi %s and name CA' % (res_num+1))
-        omega = cmd.get_dihedral('A', 'B', 'C', 'D', state)
+    if res_num != res_num_list[-1]:
+        cmd.select('alpha', 'resi %s and name CA' % res_num)
+        cmd.select('beta', 'resi %s and name C' % res_num)
+        cmd.select('gamma', 'resi %s and name N' % (res_num+1))
+        cmd.select('delta', 'resi %s and name CA' % (res_num+1))
+        omega = cmd.get_dihedral('alpha', 'beta', 'gamma', 'delta', state)
         return omega
     else:
         return float('nan')
@@ -111,11 +127,11 @@ def get_omega(res_num, state, total_residues):
 def get_chi1(res_num, res_name, state):
     """Computes the chi1 torsional angle"""
     if res_name not in ['ALA', 'GLY', 'PRO']:
-        cmd.select('A', 'resi %s and name N' % res_num)
-        cmd.select('B', 'resi %s and name CA' % res_num)
-        cmd.select('C', 'resi %s and name CB' % res_num)
-        cmd.select('D', 'resi %s and (name CG or name CG1 or name OG1 or name OG or name SG)' % res_num)
-        chi1 = cmd.get_dihedral('A', 'B', 'C', 'D', state)
+        cmd.select('alpha', 'resi %s and name N' % res_num)
+        cmd.select('beta', 'resi %s and name CA' % res_num)
+        cmd.select('gamma', 'resi %s and name CB' % res_num)
+        cmd.select('delta', 'resi %s and (name CG or name CG1 or name OG1 or name OG or name SG)' % res_num)
+        chi1 = cmd.get_dihedral('alpha', 'beta', 'gamma', 'delta', state)
         return chi1
     else:
         return float('nan')
@@ -124,11 +140,11 @@ def get_chi1(res_num, res_name, state):
 def get_chi2(res_num, res_name, state):
     """Computes the chi2 torsional angle"""
     if res_name not in ['ALA', 'GLY', 'PRO', 'SER', 'THR', 'VAL', 'CYS']:
-        cmd.select('A', 'resi %s and name CA' % res_num)
-        cmd.select('B', 'resi %s and name CB' % res_num)
-        cmd.select('C', 'resi %s and (name CG or name CG1 or name OG1 or name OG)' % res_num)
-        cmd.select('D', 'resi %s and (name CD or name CD1 or name OD1 or name ND1 or name SD)' % res_num)
-        chi2 = cmd.get_dihedral('A', 'B', 'C', 'D', state)
+        cmd.select('alpha', 'resi %s and name CA' % res_num)
+        cmd.select('beta', 'resi %s and name CB' % res_num)
+        cmd.select('gamma', 'resi %s and (name CG or name CG1 or name OG1 or name OG)' % res_num)
+        cmd.select('delta', 'resi %s and (name CD or name CD1 or name OD1 or name ND1 or name SD)' % res_num)
+        chi2 = cmd.get_dihedral('alpha', 'beta', 'gamma', 'delta', state)
         return chi2
     else:
         return float('nan')
@@ -272,20 +288,20 @@ def near(phi, psi, chi1, chi2, res_name, Db):
 
 
 
-def get_chemical_shifts_raw(residues, total_residues, state, Db):
+def get_chemical_shifts_raw(res_label_list, res_num_list, state, Db):
     """Call the near and near_pro function for all the residues. This function 
     is exclusive of the prediction routines"""
     chemical_shifts = []
-    for res_num in range(0, total_residues):
-        res_name = residues[res_num]
+    for i, res_num in enumerate(res_num_list):
+        res_name = res_label_list[i]
         try:
-            res_name_next = residues[res_num+1]
+            res_name_next = residues[i+1]
         except:
             res_name_next = 'GLY'
         if res_name != 'PRO' and res_name != 'CYS':
             try:
                 phi = get_phi(res_num, state)
-                psi = get_psi(res_num, state, total_residues)
+                psi = get_psi(res_num, state, res_num_list)
                 chi1 = get_chi1(res_num, res_name, state)
                 chi2  = get_chi2(res_num, res_name, state)
                 values_Ca_New, values_Cb_New = near(phi, psi, chi1, chi2, res_name, Db)
@@ -298,47 +314,47 @@ def get_chemical_shifts_raw(residues, total_residues, state, Db):
             values_Cb_New = 999.00
         else:
             try:
-                omega = get_omega(res_num-1, state, total_residues)
+                omega = get_omega(res_num-1, state, res_num_list)
                 values_Ca_New, values_Cb_New = near_pro(omega, psi, Db)
             except:
                 values_Ca_New, values_Cb_New = 999.00, 999.00 
         if res_name_next == 'PRO':
-            a = [res_name, round((values_Ca_New -1.95), 2), round((values_Cb_New),2)]
+            a = [res_name, res_num, round((values_Ca_New -1.95), 2), round((values_Cb_New),2)]
             chemical_shifts.append(a)
         else:
-           a = [res_name, round((values_Ca_New), 2), round((values_Cb_New),2)]
+           a = [res_name, res_num, round((values_Ca_New), 2), round((values_Cb_New),2)]
            chemical_shifts.append(a)
     return chemical_shifts
 
 
-def raw(pose, residues, total_residues, states, Db):
+def raw(pose, res_label_list, res_num_list, states, Db):
     """Calculates the theoretical chemical shifts. This function is exclusive 
     of the prediction routine"""
     cs_theo_list = []
     for state in range(1, states):
-        cs_list = get_chemical_shifts_raw(residues, total_residues, state, Db)
+        cs_list = get_chemical_shifts_raw(res_label_list, res_num_list, state, Db)
         cs_theo_list.append(cs_list)
     fd = open('%s.txt' % pose, 'w')
     fd.write('Ca Chemical Shifts\n')
-    for residue in range(0, total_residues): 
+    for i, res_num in enumerate(res_num_list): 
         cs_theo_line = []
         for conformation in range(0, len(cs_theo_list)):
-            res_name, Ca_shift, Cb_shift = cs_theo_list[conformation][residue]
+            res_name, res_num, Ca_shift, Cb_shift = cs_theo_list[conformation][i]
             if float(Ca_shift) > 100.:
                 Ca_shift = 999.00
             cs_theo_line.append('%6.2f' % (Ca_shift))
         res_line = "\t".join(cs_theo_line)
-        fd.write('%s\t %s\n' % (residues[residue], res_line))
+        fd.write('%s\t %s\t %s\n' % (res_num, res_label_list[i], res_line))
     fd.write('\nCb Chemical Shifts\n')
-    for residue in range(0, len(residues)): 
+    for i, res_num in enumerate(res_num_list): 
         cs_theo_line=[]
         for conformation in range(0, len(cs_theo_list)):
-            res_name, Ca_shift, Cb_shift = cs_theo_list[conformation][residue]
+            res_name, res_num, Ca_shift, Cb_shift = cs_theo_list[conformation][i]
             if float(Cb_shift) > 100.:
                 Cb_shift = 999.00
             cs_theo_line.append('%6.2f' % (Cb_shift))
         res_line = "\t".join(cs_theo_line)
-        fd.write('%s\t %s\n' % (residues[residue], res_line))
+        fd.write('%s\t %s\t %s\n' % (res_num, res_label_list[i], res_line))
     fd.close()
 
 cmd.extend("cheshift_prediction", run)
