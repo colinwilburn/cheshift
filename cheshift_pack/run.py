@@ -42,6 +42,7 @@ def prediction(pdb_filename, path):
     """Run the CheShift CS prediction routine"""
     cmd.set('suspend_updates', 'on')
     pose, res_label_list, res_num_list, states = pose_from_pdb(pdb_filename)
+    res_num_list = res_num_list[:len(res_label_list)] 
     Db = load(path)
     raw(pose, res_label_list, res_num_list, states, Db)
     print '<'*80 + '\nYou didn`t provide a file with chemical Shifts, hence CheShift-2 assumed you\n only wanted the predicted CS. The predicted chemical shifts can be found in the file %s.txt\n' % pose + '>'*80
@@ -292,7 +293,8 @@ def get_chemical_shifts_raw(res_label_list, res_num_list, state, Db):
     """Call the near and near_pro function for all the residues. This function 
     is exclusive of the prediction routines"""
     chemical_shifts = []
-    for i, res_num in enumerate(res_num_list):
+    for i, res_num in enumerate(res_num_list): 
+        print(i, len(res_num_list), len(res_label_list))
         res_name = res_label_list[i]
         try:
             res_name_next = residues[i+1]
@@ -306,7 +308,7 @@ def get_chemical_shifts_raw(res_label_list, res_num_list, state, Db):
                 chi2  = get_chi2(res_num, res_name, state)
                 values_Ca_New, values_Cb_New = near(phi, psi, chi1, chi2, res_name, Db)
             except Exception as err:
-                #traceback.print_exc()
+                traceback.print_exc()
                 values_Ca_New = 999.00
                 values_Cb_New = 999.00
         elif res_name == 'CYS':

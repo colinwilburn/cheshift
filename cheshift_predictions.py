@@ -12,5 +12,3 @@ def predict(filename_pdb, filename_out):
     subprocess.call(args,stdout=subprocess.PIPE, stderr=subprocess.PIPE) # get CS predictions from cheshift
     filename_cheshift = filename_pdb[:-3] + 'txt' # take off the pdb and append txt; this is where the cheshift predictions were written
     convert_file(filename_cheshift, filename_out) # convert to CSV and write
-
-#predict('5xq1.pdb', '5xq1.csv')
